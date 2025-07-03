@@ -24,6 +24,8 @@ export interface UserProgress {
   longestStreak: number;
   totalWordsLearned: number;
   totalLessonsCompleted: number;
+  completedLessons: string[];
+  completedSections: string[];
   lastLoginDate: string;
   dailyGoal: number;
   wordsLearnedToday: number;
@@ -86,10 +88,13 @@ export interface GameScore {
 }
 
 export interface LessonSection {
-  id: number;
+  id: string;
+  title: string;
   words: VocabularyItem[];
   completed: boolean;
-  wordsLearned: number;
+  category: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  isLocked: boolean;
 }
 
 export interface Lesson {
@@ -99,5 +104,7 @@ export interface Lesson {
   sections: LessonSection[];
   totalWords: number;
   completed: boolean;
-  languagePair: string;
+  category: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  isLocked: boolean;
 }

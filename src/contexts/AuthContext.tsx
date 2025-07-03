@@ -25,6 +25,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     longestStreak: 0,
     totalWordsLearned: 0,
     totalLessonsCompleted: 0,
+    completedLessons: [],
+    completedSections: [],
     lastLoginDate: new Date().toISOString().split('T')[0],
     dailyGoal: 10,
     wordsLearnedToday: 0,

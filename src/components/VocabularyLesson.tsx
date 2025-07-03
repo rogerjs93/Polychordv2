@@ -1,57 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, ArrowRight, CheckCircle, BookOpen, Target, ArrowLeft } from 'lucide-react';
-import { VocabularyItem } from '../types';
+import { Volume2, ArrowRight, CheckCircle, BookOpen, Target, ArrowLeft, Lock } from 'lucide-react';
+import { Lesson } from '../types';
 import { useSpeech } from '../hooks/useSpeech';
 
 interface VocabularyLessonProps {
-  vocabulary: VocabularyItem[];
+  lesson: Lesson;
   onSectionComplete: (wordsLearned: number) => void;
   onLessonComplete: (wordsInLesson: number) => void;
   targetLanguage: string;
-  currentSectionIndex?: number;
-}
-
-interface LessonSection {
-  id: number;
-  words: VocabularyItem[];
-  completed: boolean;
+  currentSectionIndex: number;
+  onStartSection: (sectionIndex: number) => void;
 }
 
 export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
-  vocabulary,
+  lesson,
   onSectionComplete,
   onLessonComplete,
   targetLanguage,
-  currentSectionIndex = 0
+  currentSectionIndex,
+  onStartSection
 }) => {
-  const [sections, setSections] = useState<LessonSection[]>([]);
   const [activeSectionIndex, setActiveSectionIndex] = useState(currentSectionIndex);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [completedWords, setCompletedWords] = useState<Set<string>>(new Set());
+  const [lessonCompleted, setLessonCompleted] = useState(false);
   const { speak, isSpeaking } = useSpeech();
 
-  // Initialize sections (10 words per section)
   useEffect(() => {
-    const wordsPerSection = 10;
-    const newSections: LessonSection[] = [];
-    
-    for (let i = 0; i < vocabulary.length; i += wordsPerSection) {
-      const sectionWords = vocabulary.slice(i, i + wordsPerSection);
-      newSections.push({
-        id: Math.floor(i / wordsPerSection) + 1,
-        words: sectionWords,
-        completed: false
-      });
-    }
-    
-    setSections(newSections);
-    setActiveSectionIndex(Math.min(currentSectionIndex, newSections.length - 1));
-  }, [vocabulary, currentSectionIndex]);
+    setActiveSectionIndex(currentSectionIndex);
+    setCurrentWordIndex(0);
+    setLessonCompleted(false); // Reset completion state when starting a new lesson
+  }, [currentSectionIndex, lesson.id]);
 
-  const currentSection = sections[activeSectionIndex];
+  const currentSection = lesson.sections[activeSectionIndex];
   const currentWord = currentSection?.words[currentWordIndex];
-  const totalSections = sections.length;
-  const completedSections = sections.filter(s => s.completed).length;
+  const totalSections = lesson.sections.length;
+  const completedSectionsCount = lesson.sections.filter(s => s.completed).length;
 
   const handleSpeak = (text: string, isTargetLanguage: boolean = true) => {
     const langCode = isTargetLanguage 
@@ -71,7 +55,7 @@ export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
   };
 
   const handleNextWord = () => {
-    if (!currentSection) return;
+    if (!currentSection || lessonCompleted) return;
 
     // Mark current word as seen
     if (currentWord) {
@@ -93,29 +77,28 @@ export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
   };
 
   const handleSectionComplete = () => {
-    if (!currentSection) return;
+    if (!currentSection || lessonCompleted) return;
 
-    // Mark section as completed
-    const updatedSections = [...sections];
-    updatedSections[activeSectionIndex].completed = true;
-    setSections(updatedSections);
-
-    // Report progress
+    // Report progress first
     onSectionComplete(currentSection.words.length);
 
-    // Check if all sections are completed
-    if (activeSectionIndex === sections.length - 1) {
-      onLessonComplete(vocabulary.length);
+    // Check if this was the last section
+    if (activeSectionIndex === lesson.sections.length - 1) {
+      // This was the last section, so the lesson is complete
+      setLessonCompleted(true);
+      onLessonComplete(lesson.totalWords);
     } else {
-      // Move to next section
-      setActiveSectionIndex(activeSectionIndex + 1);
-      setCurrentWordIndex(0);
+      // Move to next section automatically
+      setTimeout(() => {
+        onStartSection(activeSectionIndex + 1);
+      }, 100);
     }
   };
 
   const handleSectionSelect = (sectionIndex: number) => {
-    setActiveSectionIndex(sectionIndex);
-    setCurrentWordIndex(0);
+    if (!lesson.sections[sectionIndex].isLocked) {
+      onStartSection(sectionIndex);
+    }
   };
 
   if (!currentSection || !currentWord) {
@@ -137,13 +120,13 @@ export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">Vocabulary Lesson</h2>
-              <p className="text-indigo-100">Section {currentSection.id} of {totalSections}</p>
+              <h2 className="text-2xl font-bold">{lesson.title}</h2>
+              <p className="text-indigo-100">Section {activeSectionIndex + 1} of {totalSections}</p>
             </div>
           </div>
           
           <div className="text-right">
-            <div className="text-2xl font-bold">{completedSections}/{totalSections}</div>
+            <div className="text-2xl font-bold">{completedSectionsCount}/{totalSections}</div>
             <div className="text-sm text-indigo-100">Sections Complete</div>
           </div>
         </div>
@@ -152,7 +135,7 @@ export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
         <div className="w-full bg-white/20 rounded-full h-3 mb-4">
           <div 
             className="bg-white h-3 rounded-full transition-all duration-500"
-            style={{ width: `${(completedSections / totalSections) * 100}%` }}
+            style={{ width: `${(completedSectionsCount / totalSections) * 100}%` }}
           ></div>
         </div>
 
@@ -173,23 +156,28 @@ export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
             </h3>
             
             <div className="space-y-2">
-              {sections.map((section, index) => (
+              {lesson.sections.map((section, index) => (
                 <button
                   key={section.id}
                   onClick={() => handleSectionSelect(index)}
+                  disabled={section.isLocked}
                   className={`w-full text-left p-3 rounded-lg transition-all ${
                     index === activeSectionIndex
                       ? 'bg-indigo-100 border-2 border-indigo-500 text-indigo-700'
                       : section.completed
                       ? 'bg-green-50 border border-green-200 text-green-700 hover:bg-green-100'
+                      : section.isLocked
+                      ? 'bg-gray-100 border border-gray-200 text-gray-500 cursor-not-allowed'
                       : 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">Section {section.id}</span>
-                    {section.completed && (
+                    <span className="font-medium">{section.title.split(' - ').slice(-1)}</span>
+                    {section.completed ? (
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                    )}
+                    ) : section.isLocked ? (
+                      <Lock className="w-4 h-4 text-gray-400" />
+                    ) : null}
                   </div>
                   <div className="text-sm opacity-75">
                     {section.words.length} words
@@ -320,7 +308,12 @@ export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
               </div>
             </div>
 
-            {currentWordIndex === currentSection.words.length - 1 ? (
+            {lessonCompleted ? (
+              <div className="flex items-center gap-2 px-6 py-3 bg-green-100 text-green-700 rounded-lg font-medium">
+                <CheckCircle className="w-5 h-5" />
+                Lesson Completed! Redirecting...
+              </div>
+            ) : currentWordIndex === currentSection.words.length - 1 ? (
               <button
                 onClick={handleSectionComplete}
                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 transition-all font-medium"

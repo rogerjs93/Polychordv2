@@ -15,6 +15,8 @@ import { Language, GameScore } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useTranslation } from './hooks/useTranslation';
 import { useVocabulary } from './hooks/useVocabulary';
+import { useProgress } from './hooks/useProgress';
+import { useLessons } from './hooks/useLessons';
 
 // Import data
 import languagesData from './data/languages.json';
@@ -33,8 +35,7 @@ const AppContent: React.FC = () => {
   const [showLessonSelector, setShowLessonSelector] = useState(false);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [completedSections, setCompletedSections] = useLocalStorage<Set<string>>('completed_sections', new Set());
-  const [completedLessons, setCompletedLessons] = useLocalStorage<Set<string>>('completed_lessons', new Set());
+  const { completedSections, completeLesson, completeSection } = useProgress();
   const [lessonStats, setLessonStats] = useLocalStorage('lesson_stats', {
     sectionsCompleted: 0,
     lessonsCompleted: 0,
@@ -49,14 +50,20 @@ const AppContent: React.FC = () => {
     loading: vocabularyLoading, 
     error: vocabularyError, 
     refreshVocabulary,
-    getWordsForGames,
-    getCurrentLessonWords
+    getWordsForGames
   } = useVocabulary(
     currentLanguagePair?.nativeLanguage || '',
     currentLanguagePair?.targetLanguage || ''
   );
 
+  const { lessons, categories, firstUncompletedLessonIndex } = useLessons(vocabulary, completedSections);
+
   const handleSectionComplete = (wordsLearned: number) => {
+    const lesson = lessons[currentLessonIndex];
+    if (!lesson) return;
+    const section = lesson.sections[currentSectionIndex];
+    if (!section) return;
+
     // Update lesson stats
     setLessonStats(prev => ({
       ...prev,
@@ -65,8 +72,7 @@ const AppContent: React.FC = () => {
     }));
 
     // Mark section as completed
-    const sectionId = `section-${currentSectionIndex}`;
-    setCompletedSections(prev => new Set([...prev, sectionId]));
+    completeSection(section.id);
 
     // Update user progress for each word learned
     for (let i = 0; i < wordsLearned; i++) {
@@ -75,18 +81,36 @@ const AppContent: React.FC = () => {
   };
 
   const handleLessonComplete = (wordsInLesson: number) => {
+    const lesson = lessons[currentLessonIndex];
+    if (!lesson) return;
+
     setLessonStats(prev => ({
       ...prev,
       lessonsCompleted: prev.lessonsCompleted + 1
     }));
     
     // Mark lesson as completed
-    const lessonId = `lesson-${currentLessonIndex}`;
-    setCompletedLessons(prev => new Set([...prev, lessonId]));
+    completeLesson(lesson.id);
     
-    // Show completion message and return to lesson selector
-    alert(`🎉 Lesson completed! You've learned ${wordsInLesson} new words!`);
+    // Return to lesson selector immediately
     setShowLessonSelector(true);
+    
+    // Show completion message after redirect
+    setTimeout(() => {
+      alert(`🎉 Lesson completed! You've learned ${wordsInLesson} new words!`);
+    }, 100);
+  };
+
+  const handleContinueLearning = () => {
+    if (firstUncompletedLessonIndex !== -1) {
+      const lesson = lessons[firstUncompletedLessonIndex];
+      const firstUncompletedSectionIndex = lesson.sections.findIndex(section => !section.completed);
+      const sectionIndexToStart = firstUncompletedSectionIndex === -1 ? 0 : firstUncompletedSectionIndex;
+      handleStartLesson(firstUncompletedLessonIndex, sectionIndexToStart);
+    } else {
+      alert("Congratulations! You have completed all lessons.");
+      setShowLessonSelector(true);
+    }
   };
 
   const handleStartLesson = (lessonIndex: number, sectionIndex: number) => {
@@ -185,11 +209,11 @@ const AppContent: React.FC = () => {
         if (showLessonSelector) {
           return (
             <LessonSelector
-              vocabulary={vocabulary}
+              lessons={lessons}
+              categories={categories}
               onStartLesson={handleStartLesson}
-              onStartSection={handleStartSection}
-              completedSections={completedSections}
-              completedLessons={completedLessons}
+              onContinueLearning={handleContinueLearning}
+              firstUncompletedLessonIndex={firstUncompletedLessonIndex}
             />
           );
         }
@@ -230,13 +254,14 @@ const AppContent: React.FC = () => {
               </p>
             </div>
             
-            {!vocabularyLoading && !vocabularyError && vocabulary.length > 0 ? (
+            {!vocabularyLoading && !vocabularyError && lessons.length > 0 ? (
               <VocabularyLesson
-                vocabulary={getCurrentLessonWords(currentLessonIndex, currentSectionIndex)}
+                lesson={lessons[currentLessonIndex]}
                 onSectionComplete={handleSectionComplete}
                 onLessonComplete={handleLessonComplete}
                 targetLanguage={currentLanguagePair.targetLanguage}
                 currentSectionIndex={currentSectionIndex}
+                onStartSection={handleStartSection}
               />
             ) : !vocabularyLoading && !vocabularyError ? (
               <div className="text-center py-8">
