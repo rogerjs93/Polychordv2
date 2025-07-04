@@ -4,7 +4,7 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/Polychordv2/' : '/',
+  base: '/Polychordv2/',
   plugins: [react()],
   cacheDir: 'node_modules/.vite-custom-cache',
   resolve: {
