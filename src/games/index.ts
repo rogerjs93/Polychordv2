@@ -1,0 +1,10 @@
+export { BaseGame } from './BaseGame';
+export type { GameConfig, GameScene } from './BaseGame';
+export { MatchingGame } from './MatchingGame';
+export { MemoryGame } from './MemoryGame';
+export { TypingGame } from './TypingGame';
+export { ListeningGame } from './ListeningGame';
+export { PuzzleGame } from './PuzzleGame';
+export { QuizGame } from './QuizGame';
+export { GameFactory } from './GameFactory';
+export type { GameType } from './GameFactory';

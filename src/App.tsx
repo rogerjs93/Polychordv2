@@ -7,7 +7,7 @@ import { Header } from './components/Header';
 import { ProgressDashboard } from './components/ProgressDashboard';
 import { VocabularyLesson } from './components/VocabularyLesson';
 import { LessonSelector } from './components/LessonSelector';
-import { GameContainer } from './components/GameContainer';
+import GameWrapper from './components/GameWrapper';
 import { LanguageManager } from './components/LanguageManager';
 import { Sidebar } from './components/Sidebar';
 import { Gamepad2 } from 'lucide-react';
@@ -421,7 +421,7 @@ const AppContent: React.FC = () => {
                 </div>
                 
                 {vocabulary.length > 0 ? (
-                  <GameContainer
+                  <GameWrapper
                     gameType={selectedGame}
                     vocabulary={getWordsForGames(selectedGame, currentLessonIndex, currentSectionIndex)}
                     onGameComplete={handleGameComplete}
