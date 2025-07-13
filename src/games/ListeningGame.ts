@@ -1,4 +1,5 @@
 import { BaseGame, GameConfig } from './BaseGame';
+import { detectLanguageFromVocabulary, getLanguageCodeForSpeech } from '../utils/languageDetection';
 
 export class ListeningGame extends BaseGame {
   constructor(config: GameConfig) {
@@ -294,19 +295,11 @@ export class ListeningGame extends BaseGame {
       if (gamePhase === 'answering' && currentWordIndex < words.length) {
         const currentWord = words[currentWordIndex];
         
-        // Determine language and speak
-        const getLanguageCode = (targetLang: string): string => {
-          const langMap: { [key: string]: string } = {
-            'es': 'es-ES', 'fr': 'fr-FR', 'de': 'de-DE', 'it': 'it-IT',
-            'pt': 'pt-PT', 'nl': 'nl-NL', 'ru': 'ru-RU', 'ja': 'ja-JP',
-            'ko': 'ko-KR', 'zh': 'zh-CN', 'sv': 'sv-SE', 'no': 'no-NO',
-            'da': 'da-DK', 'fi': 'fi-FI', 'uk': 'uk-UA', 'en': 'en-US'
-          };
-          return langMap[targetLang] || 'en-US';
-        };
+        // Use enhanced language detection
+        const detectedLanguage = detectLanguageFromVocabulary(this.vocabulary);
+        const langCode = getLanguageCodeForSpeech(detectedLanguage);
         
-        const detectedLanguage = this.vocabulary[0]?.word ? 'es' : 'es'; // Could be improved
-        const langCode = getLanguageCode(detectedLanguage);
+        console.log(`🔄 Replaying with language: ${detectedLanguage} -> ${langCode}`);
         
         this.speak(currentWord.word, langCode);
         
@@ -638,24 +631,11 @@ export class ListeningGame extends BaseGame {
       const currentWord = words[currentWordIndex];
       gamePhase = 'playing';
       
-      // Dynamic language detection based on current vocabulary
-      const getLanguageCode = (targetLang: string): string => {
-        const langMap: { [key: string]: string } = {
-          'es': 'es-ES', 'fr': 'fr-FR', 'de': 'de-DE', 'it': 'it-IT',
-          'pt': 'pt-PT', 'nl': 'nl-NL', 'ru': 'ru-RU', 'ja': 'ja-JP',
-          'ko': 'ko-KR', 'zh': 'zh-CN', 'sv': 'sv-SE', 'no': 'no-NO',
-          'da': 'da-DK', 'fi': 'fi-FI', 'uk': 'uk-UA', 'en': 'en-US'
-        };
-        return langMap[targetLang] || 'en-US';
-      };
+      // Enhanced language detection
+      const detectedLanguage = detectLanguageFromVocabulary(this.vocabulary);
+      const langCode = getLanguageCodeForSpeech(detectedLanguage);
       
-      // Try to detect target language from vocabulary
-      const detectedLanguage = this.vocabulary[0]?.word ? 
-        // Simple heuristic - could be improved with actual language detection
-        this.vocabulary.length > 0 ? Object.keys(this.vocabulary[0]).find(key => key.includes('lang')) || 'es' : 'es'
-        : 'es';
-      
-      const langCode = getLanguageCode(detectedLanguage);
+      console.log(`🎯 Detected language: ${detectedLanguage} -> Using voice: ${langCode}`);
       
       // Enhanced play button animation
       playButtonText.setText('🎵 PLAYING...');

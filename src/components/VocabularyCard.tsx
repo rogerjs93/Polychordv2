@@ -3,6 +3,7 @@ import { Volume2, RotateCcw, Check, X, Mic, Star, AlertCircle } from 'lucide-rea
 import { VocabularyItem } from '../types';
 import { useSpeech } from '../hooks/useSpeech';
 import { useTranslation } from '../hooks/useTranslation';
+import { getLanguageCodeForSpeech } from '../utils/languageDetection';
 
 interface VocabularyCardProps {
   item: VocabularyItem;
@@ -37,10 +38,7 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
   const { t } = useTranslation();
 
   const handleSpeak = (text: string) => {
-    const langCode = targetLanguage === 'es' ? 'es-ES' : 
-                    targetLanguage === 'fr' ? 'fr-FR' : 
-                    targetLanguage === 'de' ? 'de-DE' :
-                    targetLanguage === 'fi' ? 'fi-FI' : 'en-US';
+    const langCode = getLanguageCodeForSpeech(targetLanguage);
     speak(text, langCode);
   };
 
@@ -219,10 +217,7 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
       setPronunciationResult(null);
       setShowPronunciationFeedback(false);
       
-      const langCode = targetLanguage === 'es' ? 'es-ES' : 
-                      targetLanguage === 'fr' ? 'fr-FR' : 
-                      targetLanguage === 'de' ? 'de-DE' :
-                      targetLanguage === 'fi' ? 'fi-FI' : 'en-US';
+      const langCode = getLanguageCodeForSpeech(targetLanguage);
       
       const result = await startListening(langCode);
       const targetWord = flipped ? item.translation : item.word;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Volume2, ArrowRight, CheckCircle, BookOpen, Target, ArrowLeft, Lock } from 'lucide-react';
 import { Lesson } from '../types';
 import { useSpeech } from '../hooks/useSpeech';
+import { getLanguageCodeForSpeech } from '../utils/languageDetection';
 
 interface VocabularyLessonProps {
   lesson: Lesson;
@@ -39,16 +40,7 @@ export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
 
   const handleSpeak = (text: string, isTargetLanguage: boolean = true) => {
     const langCode = isTargetLanguage 
-      ? (targetLanguage === 'es' ? 'es-ES' : 
-         targetLanguage === 'fr' ? 'fr-FR' : 
-         targetLanguage === 'de' ? 'de-DE' :
-         targetLanguage === 'fi' ? 'fi-FI' : 
-         targetLanguage === 'it' ? 'it-IT' :
-         targetLanguage === 'pt' ? 'pt-PT' :
-         targetLanguage === 'ru' ? 'ru-RU' :
-         targetLanguage === 'ja' ? 'ja-JP' :
-         targetLanguage === 'ko' ? 'ko-KR' :
-         targetLanguage === 'zh' ? 'zh-CN' : 'en-US')
+      ? getLanguageCodeForSpeech(targetLanguage)
       : 'en-US'; // Native language (assuming English for examples)
     
     speak(text, langCode);

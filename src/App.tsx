@@ -10,6 +10,7 @@ import { LessonSelector } from './components/LessonSelector';
 import GameWrapper from './components/GameWrapper';
 import { LanguageManager } from './components/LanguageManager';
 import { Sidebar } from './components/Sidebar';
+import VoiceStatus from './components/VoiceStatus';
 import { Gamepad2 } from 'lucide-react';
 import { Language, GameScore } from './types';
 import { useLocalStorage } from './hooks/useLocalStorage';
@@ -551,6 +552,9 @@ const AppContent: React.FC = () => {
           {renderContent()}
         </main>
       </div>
+      
+      {/* Voice Status Component - Shows voice availability */}
+      <VoiceStatus />
       
       {showLanguageManager && (
         <LanguageManager
