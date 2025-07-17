@@ -187,19 +187,19 @@ const AppContent: React.FC = () => {
             
             {/* Lesson Stats */}
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">Learning Statistics</h3>
+              <h3 className="text-xl font-semibold mb-4">{t('learningStatistics')}</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">{lessonStats.sectionsCompleted}</div>
-                  <div className="text-sm text-gray-600">Sections Completed</div>
+                  <div className="text-sm text-gray-600">{t('sectionsCompleted')}</div>
                 </div>
                 <div className="text-center p-4 bg-emerald-50 rounded-lg">
                   <div className="text-2xl font-bold text-emerald-600">{lessonStats.lessonsCompleted}</div>
-                  <div className="text-sm text-gray-600">Lessons Completed</div>
+                  <div className="text-sm text-gray-600">{t('lessonsCompleted')}</div>
                 </div>
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600">{lessonStats.totalWordsLearned}</div>
-                  <div className="text-sm text-gray-600">Words from Lessons</div>
+                  <div className="text-sm text-gray-600">{t('wordsFromLessons')}</div>
                 </div>
               </div>
             </div>
@@ -261,6 +261,7 @@ const AppContent: React.FC = () => {
                 onSectionComplete={handleSectionComplete}
                 onLessonComplete={handleLessonComplete}
                 targetLanguage={currentLanguagePair.targetLanguage}
+                nativeLanguage={currentLanguagePair.nativeLanguage}
                 currentSectionIndex={currentSectionIndex}
                 onStartSection={handleStartSection}
               />
@@ -426,6 +427,8 @@ const AppContent: React.FC = () => {
                     gameType={selectedGame}
                     vocabulary={getWordsForGames(selectedGame, currentLessonIndex, currentSectionIndex)}
                     onGameComplete={handleGameComplete}
+                    nativeLanguage={currentLanguagePair.nativeLanguage}
+                    targetLanguage={currentLanguagePair.targetLanguage}
                   />
                 ) : (
                   <div className="text-center py-8">

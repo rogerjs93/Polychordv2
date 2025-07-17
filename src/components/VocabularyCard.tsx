@@ -9,6 +9,7 @@ interface VocabularyCardProps {
   item: VocabularyItem;
   onAnswer: (correct: boolean) => void;
   targetLanguage: string;
+  nativeLanguage?: string;
 }
 
 interface PronunciationResult {
@@ -28,17 +29,23 @@ interface PronunciationResult {
 export const VocabularyCard: React.FC<VocabularyCardProps> = ({
   item,
   onAnswer,
-  targetLanguage
+  targetLanguage,
+  nativeLanguage = 'en'
 }) => {
   const [flipped, setFlipped] = useState(false);
   const [showExample, setShowExample] = useState(false);
   const [pronunciationResult, setPronunciationResult] = useState<PronunciationResult | null>(null);
   const [showPronunciationFeedback, setShowPronunciationFeedback] = useState(false);
-  const { speak, startListening, isSpeaking, isListening } = useSpeech();
+  
+  // Only load voices for the languages used in this component
+  const languageCodes = [targetLanguage, nativeLanguage];
+  const { speak, startListening, isSpeaking, isListening } = useSpeech({ languageCodes });
   const { t } = useTranslation();
 
-  const handleSpeak = (text: string) => {
-    const langCode = getLanguageCodeForSpeech(targetLanguage);
+  const handleSpeak = (text: string, isTargetLanguage: boolean = true) => {
+    const langCode = isTargetLanguage 
+      ? getLanguageCodeForSpeech(targetLanguage)
+      : getLanguageCodeForSpeech(nativeLanguage);
     speak(text, langCode);
   };
 
@@ -291,7 +298,7 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
         
         <div className="flex justify-center gap-2 mb-4">
           <button
-            onClick={() => handleSpeak(flipped ? item.translation : item.word)}
+            onClick={() => handleSpeak(flipped ? item.translation : item.word, !flipped)}
             disabled={isSpeaking}
             className="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50"
           >
@@ -409,7 +416,7 @@ export const VocabularyCard: React.FC<VocabularyCardProps> = ({
           <p className="text-gray-800 mb-2">{item.example}</p>
           <p className="text-gray-600 text-sm italic">{item.exampleTranslation}</p>
           <button
-            onClick={() => handleSpeak(item.example)}
+            onClick={() => handleSpeak(item.example, true)}
             className="mt-2 flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
           >
             <Volume2 className="w-3 h-3" />

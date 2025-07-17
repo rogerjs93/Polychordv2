@@ -178,42 +178,19 @@ const getBestVoiceForLanguage = (languageCode: string, availableVoices: SpeechSy
 const getGuaranteedVoice = (languageCode: string, availableVoices: SpeechSynthesisVoice[]): { voice: SpeechSynthesisVoice | null, lang: string } => {
   // Try to get the best voice for the requested language
   const bestVoice = getBestVoiceForLanguage(languageCode, availableVoices);
+  const langConfig = LANGUAGE_VOICE_MAP[languageCode];
+  const fallbackLang = langConfig ? langConfig.code : 'en-US';
   
   if (bestVoice) {
     return { voice: bestVoice, lang: bestVoice.lang };
   }
   
-  // If no native voice found, use English voice but with target language code
-  // This helps the browser's TTS engine know what language to expect
-  const englishVoice = getBestVoiceForLanguage('en', availableVoices);
-  const langConfig = LANGUAGE_VOICE_MAP[languageCode];
-  
-  if (englishVoice && langConfig) {
-    console.log(`🔄 Using English voice with ${languageCode} language code: ${englishVoice.name}`);
-    console.log(`   This will help the TTS engine understand the target language`);
-    return { 
-      voice: englishVoice, 
-      lang: langConfig.code // Use the target language code, not English
-    };
-  }
-  
-  // Fallback to English voice with English language
-  if (englishVoice) {
-    console.log(`🔄 Falling back to English voice: ${englishVoice.name} (${englishVoice.lang})`);
-    return { voice: englishVoice, lang: englishVoice.lang };
-  }
-  
-  // Last resort: use any available voice
-  if (availableVoices.length > 0) {
-    const fallbackVoice = availableVoices[0];
-    const targetLang = langConfig ? langConfig.code : 'en-US';
-    console.log(`🔄 Using first available voice with target language: ${fallbackVoice.name} → ${targetLang}`);
-    return { voice: fallbackVoice, lang: targetLang };
-  }
-  
-  // No voices available at all
-  const fallbackLang = langConfig ? langConfig.fallbackLang : 'en-US';
-  console.warn(`⚠️ No voices available. Using language code: ${fallbackLang}`);
+  // If no native voice is found for the specific language, we should not attempt to use a 
+  // voice from another language as it leads to incorrect pronunciation.
+  // Instead, we return null for the voice and let the calling function decide on a fallback strategy,
+  // such as using an open-source TTS provider. The language code is still returned
+  // so the synthesizer knows what language to expect.
+  console.warn(`⚠️ No native voice found for ${languageCode}. Relying on browser/open-source fallback.`);
   return { voice: null, lang: fallbackLang };
 };
 
@@ -255,7 +232,7 @@ export const isLanguageSupportedByOpenSource = (languageCode: string, loadedProv
   return supportedLanguages.includes(languageCode);
 };
 
-export const useSpeech = () => {
+export const useSpeech = ({ languageCodes }: { languageCodes?: string[] } = {}) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -270,16 +247,15 @@ export const useSpeech = () => {
         
         // Debug: Log available voices for troubleshooting
         console.log('🔊 Available voices loaded:', availableVoices.length);
-        console.log('📋 All available voices:', availableVoices.map(v => `${v.name} (${v.lang})`));
         
-        // Check what languages we can support
-        const supportedLanguages = Object.keys(LANGUAGE_VOICE_MAP);
-        console.log('🌐 Checking voice support for supported languages:');
+        // Determine which languages to check for voice support
+        const languagesToLoad = languageCodes || Object.keys(LANGUAGE_VOICE_MAP);
+        console.log('🌐 Checking voice support for languages:', languagesToLoad);
         
         let languagesWithNativeVoices = 0;
         const languagesWithoutVoices: string[] = [];
         
-        supportedLanguages.forEach(lang => {
+        languagesToLoad.forEach(lang => {
           const voices = getVoicesForLanguage(lang);
           console.log(`  ${lang}: ${voices.length} voices available`, voices.map(v => `${v.name} (${v.lang})`));
           
@@ -290,8 +266,8 @@ export const useSpeech = () => {
           }
         });
         
-        // Provide helpful guidance
-        if (languagesWithoutVoices.length > 0) {
+        // Provide helpful guidance only if checking all languages
+        if (!languageCodes && languagesWithoutVoices.length > 0) {
           console.log(`\n📝 Voice Installation Guide:`);
           console.log(`❌ Missing voices for: ${languagesWithoutVoices.join(', ')}`);
           console.log(`\n🔧 To install additional voices on Windows:`);
@@ -301,7 +277,7 @@ export const useSpeech = () => {
           console.log(`   4. Download the speech pack`);
           console.log(`   5. Restart your browser`);
           console.log(`\n🎵 Alternatively, use the Voice Options Manager for instant online voices`);
-        } else {
+        } else if (!languageCodes) {
           console.log(`✅ All ${languagesWithNativeVoices} languages have native voice support!`);
         }
       }
@@ -313,7 +289,7 @@ export const useSpeech = () => {
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
-  }, []);
+  }, [languageCodes]);
 
   const speak = useCallback(async (text: string, language: string = 'en') => {
     if ('speechSynthesis' in window) {
@@ -338,12 +314,12 @@ export const useSpeech = () => {
       
       // If we have native voices, try them first
       if (hasNativeVoice) {
-        const { voice } = getGuaranteedVoice(langCode, voices);
+        const { voice, lang } = getGuaranteedVoice(langCode, voices);
         
         if (voice) {
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.voice = voice;
-          utterance.lang = voice.lang;
+          utterance.lang = lang;
           utterance.rate = 0.85; // Slightly slower for better clarity
           utterance.pitch = 1;
           utterance.volume = 0.9;

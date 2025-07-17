@@ -9,6 +9,7 @@ interface VocabularyLessonProps {
   onSectionComplete: (wordsLearned: number) => void;
   onLessonComplete: (wordsInLesson: number) => void;
   targetLanguage: string;
+  nativeLanguage: string;
   currentSectionIndex: number;
   onStartSection: (sectionIndex: number) => void;
 }
@@ -18,6 +19,7 @@ export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
   onSectionComplete,
   onLessonComplete,
   targetLanguage,
+  nativeLanguage,
   currentSectionIndex,
   onStartSection
 }) => {
@@ -25,7 +27,7 @@ export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [completedWords, setCompletedWords] = useState<Set<string>>(new Set());
   const [lessonCompleted, setLessonCompleted] = useState(false);
-  const { speak, isSpeaking } = useSpeech();
+  const { speak, isSpeaking } = useSpeech({ languageCodes: [targetLanguage, nativeLanguage] });
 
   useEffect(() => {
     setActiveSectionIndex(currentSectionIndex);
@@ -41,7 +43,7 @@ export const VocabularyLesson: React.FC<VocabularyLessonProps> = ({
   const handleSpeak = (text: string, isTargetLanguage: boolean = true) => {
     const langCode = isTargetLanguage 
       ? getLanguageCodeForSpeech(targetLanguage)
-      : 'en-US'; // Native language (assuming English for examples)
+      : getLanguageCodeForSpeech(nativeLanguage);
     
     speak(text, langCode);
   };

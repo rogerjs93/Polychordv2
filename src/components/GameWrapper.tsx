@@ -8,16 +8,26 @@ interface GameWrapperProps {
   gameType: GameType;
   vocabulary: VocabularyItem[];
   onGameComplete: (score: number, accuracy: number) => void;
+  nativeLanguage?: string;
+  targetLanguage?: string;
 }
 
 const GameWrapper: React.FC<GameWrapperProps> = ({
   gameType,
   vocabulary,
-  onGameComplete
+  onGameComplete,
+  nativeLanguage,
+  targetLanguage
 }) => {
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserGame = useRef<Phaser.Game | null>(null);
-  const { speak } = useSpeech();
+  
+  // Only load voices for the languages being used in games, if provided
+  const languageCodes = [];
+  if (nativeLanguage) languageCodes.push(nativeLanguage);
+  if (targetLanguage) languageCodes.push(targetLanguage);
+  
+  const { speak } = useSpeech({ languageCodes: languageCodes.length > 0 ? languageCodes : undefined });
 
   useEffect(() => {
     if (!gameRef.current || vocabulary.length === 0) return;
